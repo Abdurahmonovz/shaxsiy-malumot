@@ -1,0 +1,18 @@
+{
+  "name": "Shaxsiy Seyf",
+  "short_name": "Seyf",
+  "description": "Shaxsiy ma'lumotlar, hujjatlar, rasmlar va parollar uchun xavfsiz seyf",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#09090b",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

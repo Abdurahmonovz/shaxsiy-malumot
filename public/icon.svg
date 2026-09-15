@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#18181b"/>
+      <stop offset="100%" stop-color="#09090b"/>
+    </linearGradient>
+    <linearGradient id="shield" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+    <linearGradient id="metal" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#cbd5e1"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#000000" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+
+  <!-- Background rounded rectangle -->
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <rect width="504" height="504" x="4" y="4" rx="108" fill="none" stroke="#27272a" stroke-width="4"/>
+
+  <!-- Glowing background ring -->
+  <circle cx="256" cy="256" r="170" fill="url(#shield)" opacity="0.12"/>
+
+  <!-- Lock Body & Shackle -->
+  <g filter="url(#shadow)">
+    <!-- Shackle -->
+    <path d="M 180 230 V 170 C 180 128 214 94 256 94 C 298 94 332 128 332 170 V 230" 
+          fill="none" 
+          stroke="url(#metal)" 
+          stroke-width="32" 
+          stroke-linecap="round"/>
+    
+    <!-- Lock Base -->
+    <rect x="144" y="220" width="224" height="184" rx="36" fill="url(#shield)"/>
+    
+    <!-- Inner Accent -->
+    <rect x="156" y="232" width="200" height="160" rx="26" fill="none" stroke="#fbbf24" stroke-width="3" opacity="0.6"/>
+
+    <!-- Keyhole -->
+    <circle cx="256" cy="296" r="18" fill="#18181b"/>
+    <polygon points="250,296 262,296 266,340 246,340" fill="#18181b"/>
+    
+    <!-- Shimmer reflection -->
+    <path d="M 170 235 L 342 235 C 348 235 354 240 354 246 C 354 252 348 257 342 257 L 170 257 C 164 257 158 252 158 246 C 158 240 164 235 170 235 Z" 
+          fill="#ffffff" 
+          opacity="0.3"/>
+  </g>
+</svg>

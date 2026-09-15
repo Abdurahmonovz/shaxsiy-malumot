@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Lock, ShieldCheck } from "lucide-react";
+import { Lock, ShieldCheck, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +14,7 @@ export function LockScreen() {
     event.preventDefault();
     const date = normalizeDate(value);
     if (!date) {
-      setError("Sanani kun.oy.yil ko'rinishida yozing, masalan 21.06.2005");
+      setError("Sanani kun.oy.yil ko'rinishida yozing (KK.OO.YYYY)");
       return;
     }
     setBusy(true);
@@ -44,7 +44,7 @@ export function LockScreen() {
               id="date"
               inputMode="numeric"
               autoComplete="off"
-              placeholder="21.06.2005"
+              placeholder="KK.OO.YYYY"
               value={value}
               onChange={(e) => setValue(e.target.value)}
               className="h-12 text-center text-lg tracking-widest"
@@ -63,6 +63,15 @@ export function LockScreen() {
             faqat shu sana bilan ko'rish mumkin.
           </p>
         </form>
+
+        <div className="mt-6 rounded-xl border border-border/50 bg-card/40 p-4 text-center text-xs text-muted-foreground backdrop-blur">
+          <p className="flex items-center justify-center gap-1.5 font-medium text-foreground">
+            <Smartphone className="h-4 w-4 text-primary" /> Telefonga ilova qilib o'rnatish:
+          </p>
+          <p className="mt-1 text-[11px] leading-relaxed">
+            Brauzer menyusidagi (iOS: Ulashish / Android: 3 nuqta) <strong>"Bosh ekranga qo'shish"</strong> tugmasini bosing.
+          </p>
+        </div>
       </div>
     </main>
   );
