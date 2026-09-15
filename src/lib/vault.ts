@@ -157,6 +157,14 @@ export async function createItem(input: {
   if (error) throw error;
 }
 
+export async function updateItem(
+  id: string,
+  patch: Partial<Omit<Item, "id" | "created_at" | "user_id">>
+) {
+  const { error } = await supabase.from("items").update(patch).eq("id", id);
+  if (error) throw error;
+}
+
 export async function deleteItem(item: Item) {
   if (item.file_path) {
     await supabase.storage.from("vault").remove([item.file_path]);

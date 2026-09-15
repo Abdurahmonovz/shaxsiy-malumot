@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Copy, Download, Eye, EyeOff, FileText, Image as ImageIcon, KeyRound, StickyNote, Trash2 } from "lucide-react";
+import { Copy, Download, Eye, EyeOff, FileText, Image as ImageIcon, KeyRound, Pencil, StickyNote, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { deleteItem, formatSize, kindLabels, signedUrl, type Item } from "@/lib/vault";
+import { ItemEditDialog } from "./ItemEditDialog";
 
 const icons = {
   image: ImageIcon,
@@ -16,6 +17,7 @@ export function ItemCard({ item, sectionName }: { item: Item; sectionName?: stri
   const Icon = icons[item.kind] ?? FileText;
   const [preview, setPreview] = useState<string | null>(null);
   const [revealed, setRevealed] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -76,16 +78,29 @@ export function ItemCard({ item, sectionName }: { item: Item; sectionName?: stri
             </div>
             <h3 className="mt-1 truncate text-base font-semibold">{item.title}</h3>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => removal.mutate()}
-            disabled={removal.isPending}
-            aria-label="O'chirish"
-            className="text-muted-foreground hover:text-destructive"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-1 shrink-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setEditOpen(true)}
+              aria-label="Tahrirlash"
+              className="text-muted-foreground hover:text-foreground"
+              title="Tahrirlash"
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => removal.mutate()}
+              disabled={removal.isPending}
+              aria-label="O'chirish"
+              className="text-muted-foreground hover:text-destructive"
+              title="O'chirish"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         {item.kind === "note" && item.content ? (
@@ -137,6 +152,8 @@ export function ItemCard({ item, sectionName }: { item: Item; sectionName?: stri
           </div>
         ) : null}
       </div>
+
+      <ItemEditDialog item={item} open={editOpen} onOpenChange={setEditOpen} />
     </article>
   );
 }

@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Camera, Image as ImageIcon, Plus, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -44,6 +44,9 @@ export function ItemForm({ section }: { section: Section }) {
   const [login, setLogin] = useState("");
   const [secret, setSecret] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
   function reset() {
@@ -52,6 +55,18 @@ export function ItemForm({ section }: { section: Section }) {
     setLogin("");
     setSecret("");
     setFile(null);
+    setPreview(null);
+  }
+
+  function handleSelectImage(selected: File) {
+    setFile(selected);
+    const url = URL.createObjectURL(selected);
+    setPreview(url);
+    if (!title.trim()) {
+      const d = new Date();
+      const dateStr = `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+      setTitle(`Rasm — ${dateStr}`);
+    }
   }
 
   const mutation = useMutation({
@@ -170,13 +185,88 @@ export function ItemForm({ section }: { section: Section }) {
             />
           </div>
 
-          {kind === "image" || kind === "file" ? (
+          {kind === "image" ? (
+            <div className="space-y-3">
+              <Label>Rasm yuklash yoki suratga olish:</Label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="flex-1 border-primary/40 bg-primary/10 text-primary hover:bg-primary/20"
+                >
+                  <Camera className="mr-1.5 h-4 w-4" />
+                  Kamera bilan tushirish
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => galleryInputRef.current?.click()}
+                  className="flex-1"
+                >
+                  <ImageIcon className="mr-1.5 h-4 w-4 text-muted-foreground" />
+                  Galereyadan tanlash
+                </Button>
+              </div>
+
+              {/* Hidden file inputs for camera and gallery */}
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleSelectImage(f);
+                }}
+              />
+              <input
+                ref={galleryInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleSelectImage(f);
+                }}
+              />
+
+              {preview ? (
+                <div className="relative overflow-hidden rounded-xl border border-border bg-card">
+                  <img src={preview} alt="Tanlangan rasm" className="max-h-48 w-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFile(null);
+                      setPreview(null);
+                    }}
+                    className="absolute right-2 top-2 rounded-full bg-black/75 p-1.5 text-white hover:bg-black"
+                    title="Rasmni olib tashlash"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                  <p className="p-2 text-center text-xs font-medium text-primary">Rasm biriktirildi ✓</p>
+                </div>
+              ) : null}
+
+              <Textarea
+                placeholder="Rasm haqida izoh (ixtiyoriy)"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                rows={2}
+              />
+            </div>
+          ) : null}
+
+          {kind === "file" ? (
             <div className="space-y-2">
-              <Label htmlFor="item-file">{kind === "image" ? "Rasm tanlang" : "Fayl tanlang"}</Label>
+              <Label htmlFor="item-file">Fayl tanlang</Label>
               <Input
                 id="item-file"
                 type="file"
-                accept={kind === "image" ? "image/*" : undefined}
                 onChange={(e) => setFile(e.target.files?.[0] ?? null)}
               />
               <Textarea
