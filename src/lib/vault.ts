@@ -119,6 +119,14 @@ export async function deleteSection(id: string) {
   if (error) throw error;
 }
 
+export async function updateSection(
+  id: string,
+  patch: Partial<Omit<Section, "id" | "created_at">>
+) {
+  const { error } = await supabase.from("sections").update(patch).eq("id", id);
+  if (error) throw error;
+}
+
 export async function uploadVaultFile(sectionId: string, file: File) {
   const userId = await currentUserId();
   if (!userId) throw new Error("Avval kiring");

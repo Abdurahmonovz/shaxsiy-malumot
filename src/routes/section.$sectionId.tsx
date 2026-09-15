@@ -9,7 +9,7 @@ import { ItemForm } from "@/components/vault/ItemForm";
 import { ItemCard } from "@/components/vault/ItemCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { allowedKinds, deleteSection, fetchItems, fetchSections, kindLabels } from "@/lib/vault";
+import { allowedKinds, deleteSection, fetchItems, fetchSections, kindLabels, updateSection } from "@/lib/vault";
 
 export const Route = createFileRoute("/section/$sectionId")({
   ssr: false,
@@ -66,6 +66,15 @@ function SectionDetail() {
     );
   }, [items.data, sectionId, term]);
 
+  const toggleKindMutation = useMutation({
+    mutationFn: (patch: Partial<Parameters<typeof updateSection>[1]>) => updateSection(sectionId, patch),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sections"] });
+      toast.success("Bo'lim funksiyasi yoqildi");
+    },
+    onError: () => toast.error("Funksiyani yoqib bo'lmadi"),
+  });
+
   const removal = useMutation({
     mutationFn: () => deleteSection(sectionId),
     onSuccess: () => {
@@ -110,7 +119,7 @@ function SectionDetail() {
           {section.description ? (
             <p className="mt-1 text-sm text-muted-foreground">{section.description}</p>
           ) : null}
-          <div className="mt-3 flex flex-wrap gap-1.5">
+          <div className="mt-3 flex flex-wrap items-center gap-1.5">
             {allowedKinds(section).map((kind) => (
               <span
                 key={kind}
@@ -119,6 +128,50 @@ function SectionDetail() {
                 {kindLabels[kind]}
               </span>
             ))}
+            {!section.allow_images && (
+              <button
+                type="button"
+                onClick={() => toggleKindMutation.mutate({ allow_images: true })}
+                disabled={toggleKindMutation.isPending}
+                className="rounded-full border border-dashed border-primary/50 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
+                title="Rasm yuklash funksiyasini yoqish"
+              >
+                + Rasm funksiyasini yoqish
+              </button>
+            )}
+            {!section.allow_files && (
+              <button
+                type="button"
+                onClick={() => toggleKindMutation.mutate({ allow_files: true })}
+                disabled={toggleKindMutation.isPending}
+                className="rounded-full border border-dashed border-primary/50 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
+                title="Fayl yuklash funksiyasini yoqish"
+              >
+                + Fayl funksiyasini yoqish
+              </button>
+            )}
+            {!section.allow_notes && (
+              <button
+                type="button"
+                onClick={() => toggleKindMutation.mutate({ allow_notes: true })}
+                disabled={toggleKindMutation.isPending}
+                className="rounded-full border border-dashed border-primary/50 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
+                title="Matn yozish funksiyasini yoqish"
+              >
+                + Matn funksiyasini yoqish
+              </button>
+            )}
+            {!section.allow_secrets && (
+              <button
+                type="button"
+                onClick={() => toggleKindMutation.mutate({ allow_secrets: true })}
+                disabled={toggleKindMutation.isPending}
+                className="rounded-full border border-dashed border-primary/50 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
+                title="Parol saqlash funksiyasini yoqish"
+              >
+                + Parol funksiyasini yoqish
+              </button>
+            )}
           </div>
         </div>
         <Button
