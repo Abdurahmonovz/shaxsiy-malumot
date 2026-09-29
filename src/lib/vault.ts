@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
  * used as the password of one fixed account. All data is protected by
  * row-level security on the backend.
  */
-const OWNER_EMAIL = "owner@shaxsiy-seyf.app";
+const OWNER_EMAIL = "owner.vault.app@gmail.com";
 
 export type ItemKind = "image" | "file" | "note" | "secret";
 

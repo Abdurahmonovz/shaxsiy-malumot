@@ -29,11 +29,22 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
 
 
 function createSupabaseClient() {
-  const DEFAULT_SUPABASE_URL = "https://c--42806538-a9d6-4fb2-b2dd-84d78f2ebc80-prod.lovable.cloud";
-  const DEFAULT_SUPABASE_KEY = "sb_publishable_OB-x5So36jylWfhxE1lI7w_Tvqd8m-E";
+  const DEFAULT_SUPABASE_URL = "https://jidkuakgykaebdkvqpaa.supabase.co";
+  const DEFAULT_SUPABASE_KEY = "sb_publishable_l76ZGFNO62A32LYg620waw_9WSPoAGR";
 
-  const SUPABASE_URL = import.meta.env['VITE_SUPABASE_URL'] || process.env['SUPABASE_URL'] || DEFAULT_SUPABASE_URL;
-  const SUPABASE_PUBLISHABLE_KEY = import.meta.env['VITE_SUPABASE_PUBLISHABLE_KEY'] || process.env['SUPABASE_PUBLISHABLE_KEY'] || DEFAULT_SUPABASE_KEY;
+  const SUPABASE_URL =
+    import.meta.env['VITE_SUPABASE_URL'] ||
+    import.meta.env['NEXT_PUBLIC_SUPABASE_URL'] ||
+    process.env['SUPABASE_URL'] ||
+    process.env['NEXT_PUBLIC_SUPABASE_URL'] ||
+    DEFAULT_SUPABASE_URL;
+
+  const SUPABASE_PUBLISHABLE_KEY =
+    import.meta.env['VITE_SUPABASE_PUBLISHABLE_KEY'] ||
+    import.meta.env['NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY'] ||
+    process.env['SUPABASE_PUBLISHABLE_KEY'] ||
+    process.env['NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY'] ||
+    DEFAULT_SUPABASE_KEY;
 
   if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
     const missing = [
