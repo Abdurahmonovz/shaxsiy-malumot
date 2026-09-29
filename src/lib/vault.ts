@@ -59,22 +59,85 @@ export function normalizeDate(value: string) {
 /** Unlock (or, the very first time, create) the vault with a birth date. */
 export async function unlockWithDate(date: string) {
   const password = `vault-${date}`;
+
+  // 1. Try to sign in with the given date-based password
   const first = await supabase.auth.signInWithPassword({
     email: OWNER_EMAIL,
     password,
   });
   if (!first.error) return { ok: true as const };
 
+  // 2. If sign-in failed, check whether the error is "invalid credentials"
+  //    (meaning the account exists but the password is wrong)
+  const errMsg = first.error.message?.toLowerCase() ?? "";
+  const isInvalidCredentials =
+    errMsg.includes("invalid login credentials") ||
+    errMsg.includes("invalid_credentials") ||
+    errMsg.includes("invalid password") ||
+    errMsg.includes("email not confirmed");
+
+  if (isInvalidCredentials) {
+    return {
+      ok: false as const,
+      message:
+        "Sana noto'g'ri. Oldin boshqa sana bilan ro'yxatdan o'tgansiz. " +
+        "O'sha sanani kiriting yoki \"Kalitni yangilash\" tugmasini bosing.",
+    };
+  }
+
+  // 3. Account doesn't exist yet — first-time setup
   const signUp = await supabase.auth.signUp({ email: OWNER_EMAIL, password });
   if (signUp.error) {
-    return { ok: false as const, message: "Sana to'g'ri kelmadi. Qaytadan urinib ko'ring." };
+    return {
+      ok: false as const,
+      message: `Ro'yxatdan o'tishda xatolik: ${signUp.error.message}`,
+    };
   }
   if (!signUp.data.session) {
-    const retry = await supabase.auth.signInWithPassword({ email: OWNER_EMAIL, password });
+    const retry = await supabase.auth.signInWithPassword({
+      email: OWNER_EMAIL,
+      password,
+    });
     if (retry.error) {
-      return { ok: false as const, message: "Kirish amalga oshmadi. Qaytadan urinib ko'ring." };
+      return {
+        ok: false as const,
+        message: "Kirish amalga oshmadi. Qaytadan urinib ko'ring.",
+      };
     }
   }
+  return { ok: true as const };
+}
+
+/**
+ * Reset the vault password: signs in with the old date, then updates the
+ * password to the new date. Both dates must be in normalizeDate() output
+ * format, e.g. "21.06.2005".
+ */
+export async function resetVaultPassword(oldDate: string, newDate: string) {
+  const oldPassword = `vault-${oldDate}`;
+  const newPassword = `vault-${newDate}`;
+
+  // First, authenticate with the old password
+  const signIn = await supabase.auth.signInWithPassword({
+    email: OWNER_EMAIL,
+    password: oldPassword,
+  });
+  if (signIn.error) {
+    return {
+      ok: false as const,
+      message: "Eski sana noto'g'ri. Avval ro'yxatdan o'tgan sanangizni kiriting.",
+    };
+  }
+
+  // Then update to the new password
+  const update = await supabase.auth.updateUser({ password: newPassword });
+  if (update.error) {
+    return {
+      ok: false as const,
+      message: `Parolni yangilashda xatolik: ${update.error.message}`,
+    };
+  }
+
   return { ok: true as const };
 }
 
