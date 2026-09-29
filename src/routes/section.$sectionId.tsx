@@ -3,8 +3,6 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ArrowLeft, FolderOpen, Search, Trash2 } from "lucide-react";
-import { useVaultSession } from "@/hooks/useVaultSession";
-import { LockScreen } from "@/components/vault/LockScreen";
 import { ItemForm } from "@/components/vault/ItemForm";
 import { ItemCard } from "@/components/vault/ItemCard";
 import { Button } from "@/components/ui/button";
@@ -29,22 +27,8 @@ export const Route = createFileRoute("/section/$sectionId")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: SectionPage,
+  component: SectionDetail,
 });
-
-function SectionPage() {
-  const { session, loading } = useVaultSession();
-
-  if (loading) {
-    return (
-      <main className="flex min-h-screen items-center justify-center">
-        <p className="text-sm text-muted-foreground">Yuklanmoqda...</p>
-      </main>
-    );
-  }
-  if (!session) return <LockScreen />;
-  return <SectionDetail />;
-}
 
 function SectionDetail() {
   const { sectionId } = Route.useParams();

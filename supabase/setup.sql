@@ -1,12 +1,12 @@
 -- ========================================================================
--- SHAXSIY SEYF: Barcha jadvallar, xavfsizlik qoidalari va storage
+-- SHAXSIY SEYF: AUTH-SIZ (HECH QANDAY PAROLSIZ VA LOGINSIZ) SOZLASH
 -- Ushbu SQL kodni Supabase Dashboard -> SQL Editor ga qo'yib, RUN tugmasini bosing!
 -- ========================================================================
 
--- 1. Sections (Bo'limlar) jadvali
+-- 1. Sections jadvali
 CREATE TABLE IF NOT EXISTS public.sections (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID NOT NULL REFERENCES auth.users ON DELETE CASCADE,
+  user_id UUID,
   name TEXT NOT NULL,
   description TEXT,
   color TEXT NOT NULL DEFAULT 'amber',
@@ -18,22 +18,18 @@ CREATE TABLE IF NOT EXISTS public.sections (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.sections TO authenticated;
-GRANT ALL ON public.sections TO service_role;
-ALTER TABLE public.sections ENABLE ROW LEVEL SECURITY;
+-- User_id cheklovlarini olib tashlash
+ALTER TABLE public.sections ALTER COLUMN user_id DROP NOT NULL;
+ALTER TABLE public.sections DROP CONSTRAINT IF EXISTS sections_user_id_fkey;
 
-DO $$ BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE tablename = 'sections' AND policyname = 'Owner manages sections'
-  ) THEN
-    CREATE POLICY "Owner manages sections" ON public.sections FOR ALL TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
-  END IF;
-END $$;
+-- RLS (xavfsizlik qoidalari) ni o'chirish — har kim erkin o'qib-yozishi uchun
+ALTER TABLE public.sections DISABLE ROW LEVEL SECURITY;
+GRANT ALL ON public.sections TO anon, authenticated, service_role;
 
--- 2. Items (Ma'lumotlar / Parollar / Fayllar) jadvali
+-- 2. Items jadvali
 CREATE TABLE IF NOT EXISTS public.items (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID NOT NULL REFERENCES auth.users ON DELETE CASCADE,
+  user_id UUID,
   section_id UUID NOT NULL REFERENCES public.sections(id) ON DELETE CASCADE,
   kind TEXT NOT NULL,
   title TEXT NOT NULL,
@@ -48,22 +44,17 @@ CREATE TABLE IF NOT EXISTS public.items (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.items TO authenticated;
-GRANT ALL ON public.items TO service_role;
-ALTER TABLE public.items ENABLE ROW LEVEL SECURITY;
+-- User_id cheklovlarini olib tashlash
+ALTER TABLE public.items ALTER COLUMN user_id DROP NOT NULL;
+ALTER TABLE public.items DROP CONSTRAINT IF EXISTS items_user_id_fkey;
 
-DO $$ BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE tablename = 'items' AND policyname = 'Owner manages items'
-  ) THEN
-    CREATE POLICY "Owner manages items" ON public.items FOR ALL TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
-  END IF;
-END $$;
+-- RLS ni o'chirish
+ALTER TABLE public.items DISABLE ROW LEVEL SECURITY;
+GRANT ALL ON public.items TO anon, authenticated, service_role;
 
 CREATE INDEX IF NOT EXISTS items_section_idx ON public.items(section_id);
-CREATE INDEX IF NOT EXISTS items_user_idx ON public.items(user_id);
 
--- 3. Updated_at avtomatik yangilash triggerlari
+-- 3. Updated_at triggerlari
 CREATE OR REPLACE FUNCTION public.update_updated_at_column() 
 RETURNS TRIGGER AS $$ 
 BEGIN 
@@ -78,22 +69,11 @@ CREATE TRIGGER sections_updated_at BEFORE UPDATE ON public.sections FOR EACH ROW
 DROP TRIGGER IF EXISTS items_updated_at ON public.items;
 CREATE TRIGGER items_updated_at BEFORE UPDATE ON public.items FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
--- 4. Vault Storage (Fayllar va rasmlar uchun xotira)
+-- 4. Storage (Vault bucket)
 INSERT INTO storage.buckets (id, name, public)
-VALUES ('vault', 'vault', false)
-ON CONFLICT (id) DO NOTHING;
+VALUES ('vault', 'vault', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
 
-DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'objects' AND policyname = 'Owner reads own vault files') THEN
-    CREATE POLICY "Owner reads own vault files" ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'vault' AND auth.uid()::text = (storage.foldername(name))[1]);
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'objects' AND policyname = 'Owner uploads own vault files') THEN
-    CREATE POLICY "Owner uploads own vault files" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'vault' AND auth.uid()::text = (storage.foldername(name))[1]);
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'objects' AND policyname = 'Owner updates own vault files') THEN
-    CREATE POLICY "Owner updates own vault files" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'vault' AND auth.uid()::text = (storage.foldername(name))[1]);
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'objects' AND policyname = 'Owner deletes own vault files') THEN
-    CREATE POLICY "Owner deletes own vault files" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'vault' AND auth.uid()::text = (storage.foldername(name))[1]);
-  END IF;
-END $$;
+-- Storage RLS siyosatlari (hamma uchun ochiq)
+DROP POLICY IF EXISTS "Public vault all" ON storage.objects;
+CREATE POLICY "Public vault all" ON storage.objects FOR ALL TO anon, authenticated, service_role USING (bucket_id = 'vault') WITH CHECK (bucket_id = 'vault');

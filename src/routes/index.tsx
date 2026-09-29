@@ -1,13 +1,9 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { FolderOpen, LockKeyhole, Search, ShieldCheck } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useVaultSession } from "@/hooks/useVaultSession";
-import { LockScreen } from "@/components/vault/LockScreen";
+import { FolderOpen, Search, ShieldCheck } from "lucide-react";
 import { SectionForm } from "@/components/vault/SectionForm";
 import { ItemCard } from "@/components/vault/ItemCard";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { allowedKinds, fetchItems, fetchSections, kindLabels } from "@/lib/vault";
 
@@ -30,23 +26,8 @@ export const Route = createFileRoute("/")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: Home,
+  component: Dashboard,
 });
-
-function Home() {
-  const { session, loading } = useVaultSession();
-
-  if (loading) {
-    return (
-      <main className="flex min-h-screen items-center justify-center">
-        <p className="text-sm text-muted-foreground">Yuklanmoqda...</p>
-      </main>
-    );
-  }
-
-  if (!session) return <LockScreen />;
-  return <Dashboard />;
-}
 
 function Dashboard() {
   const [query, setQuery] = useState("");
@@ -100,15 +81,6 @@ function Dashboard() {
             Bo'lim yarating, ichiga rasm, fayl, matn yoki parol qo'shib boring.
           </p>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Seyfni yopish"
-          onClick={() => supabase.auth.signOut()}
-          className="text-muted-foreground"
-        >
-          <LockKeyhole className="h-5 w-5" />
-        </Button>
       </header>
 
       <div className="relative mb-6">
@@ -130,7 +102,7 @@ function Dashboard() {
           <h2 className="mb-3 text-lg font-semibold">Topilgan ma'lumotlar</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             {matchedItems.map((item) => (
-              <ItemCard key={item.id} item={item} sectionName={sectionNames.get(item.section_id)} />
+              <ItemCard key={item.id} item={item} sectionName={sectionNames.get(item.section_id) || undefined} />
             ))}
           </div>
         </section>

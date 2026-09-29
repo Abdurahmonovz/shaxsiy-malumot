@@ -13,7 +13,7 @@ const icons = {
   secret: KeyRound,
 };
 
-export function ItemCard({ item, sectionName }: { item: Item; sectionName?: string }) {
+export function ItemCard({ item, sectionName }: { item: Item; sectionName?: string | undefined }) {
   const Icon = icons[item.kind] ?? FileText;
   const [preview, setPreview] = useState<string | null>(null);
   const [revealed, setRevealed] = useState(false);

@@ -1,12 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
 
-/**
- * Single-owner vault: the app is unlocked with the owner's birth date, which is
- * used as the password of one fixed account. All data is protected by
- * row-level security on the backend.
- */
-const OWNER_EMAIL = "owner.vault.app@gmail.com";
-
 export type ItemKind = "image" | "file" | "note" | "secret";
 
 export type Section = {
@@ -43,104 +36,6 @@ export const kindLabels: Record<ItemKind, string> = {
   secret: "Parol / kod",
 };
 
-export function normalizeDate(value: string) {
-  const digits = value.replace(/\D/g, "");
-  if (digits.length !== 8) return null;
-  const day = digits.slice(0, 2);
-  const month = digits.slice(2, 4);
-  const year = digits.slice(4, 8);
-  const d = Number(day);
-  const m = Number(month);
-  const y = Number(year);
-  if (d < 1 || d > 31 || m < 1 || m > 12 || y < 1900 || y > 2100) return null;
-  return `${day}.${month}.${year}`;
-}
-
-/** Unlock (or, the very first time, create) the vault with a birth date. */
-export async function unlockWithDate(date: string) {
-  const password = `vault-${date}`;
-
-  // 1. Try to sign in with the given date-based password
-  const first = await supabase.auth.signInWithPassword({
-    email: OWNER_EMAIL,
-    password,
-  });
-  if (!first.error) return { ok: true as const };
-
-  // 2. If sign-in failed, check whether the error is "invalid credentials"
-  //    (meaning the account exists but the password is wrong)
-  const errMsg = first.error.message?.toLowerCase() ?? "";
-  const isInvalidCredentials =
-    errMsg.includes("invalid login credentials") ||
-    errMsg.includes("invalid_credentials") ||
-    errMsg.includes("invalid password") ||
-    errMsg.includes("email not confirmed");
-
-  if (isInvalidCredentials) {
-    return {
-      ok: false as const,
-      message:
-        "Sana noto'g'ri. Oldin boshqa sana bilan ro'yxatdan o'tgansiz. " +
-        "O'sha sanani kiriting yoki \"Kalitni yangilash\" tugmasini bosing.",
-    };
-  }
-
-  // 3. Account doesn't exist yet — first-time setup
-  const signUp = await supabase.auth.signUp({ email: OWNER_EMAIL, password });
-  if (signUp.error) {
-    return {
-      ok: false as const,
-      message: `Ro'yxatdan o'tishda xatolik: ${signUp.error.message}`,
-    };
-  }
-  if (!signUp.data.session) {
-    const retry = await supabase.auth.signInWithPassword({
-      email: OWNER_EMAIL,
-      password,
-    });
-    if (retry.error) {
-      return {
-        ok: false as const,
-        message: "Kirish amalga oshmadi. Qaytadan urinib ko'ring.",
-      };
-    }
-  }
-  return { ok: true as const };
-}
-
-/**
- * Reset the vault password: signs in with the old date, then updates the
- * password to the new date. Both dates must be in normalizeDate() output
- * format, e.g. "21.06.2005".
- */
-export async function resetVaultPassword(oldDate: string, newDate: string) {
-  const oldPassword = `vault-${oldDate}`;
-  const newPassword = `vault-${newDate}`;
-
-  // First, authenticate with the old password
-  const signIn = await supabase.auth.signInWithPassword({
-    email: OWNER_EMAIL,
-    password: oldPassword,
-  });
-  if (signIn.error) {
-    return {
-      ok: false as const,
-      message: "Eski sana noto'g'ri. Avval ro'yxatdan o'tgan sanangizni kiriting.",
-    };
-  }
-
-  // Then update to the new password
-  const update = await supabase.auth.updateUser({ password: newPassword });
-  if (update.error) {
-    return {
-      ok: false as const,
-      message: `Parolni yangilashda xatolik: ${update.error.message}`,
-    };
-  }
-
-  return { ok: true as const };
-}
-
 export async function fetchSections() {
   const { data, error } = await supabase
     .from("sections")
@@ -158,11 +53,6 @@ export async function fetchItems(sectionId?: string) {
   return (data ?? []) as Item[];
 }
 
-export async function currentUserId() {
-  const { data } = await supabase.auth.getUser();
-  return data.user?.id ?? null;
-}
-
 export async function createSection(input: {
   name: string;
   description: string;
@@ -171,9 +61,7 @@ export async function createSection(input: {
   allow_notes: boolean;
   allow_secrets: boolean;
 }) {
-  const userId = await currentUserId();
-  if (!userId) throw new Error("Avval kiring");
-  const { error } = await supabase.from("sections").insert({ ...input, user_id: userId });
+  const { error } = await supabase.from("sections").insert([input]);
   if (error) throw error;
 }
 
@@ -191,10 +79,8 @@ export async function updateSection(
 }
 
 export async function uploadVaultFile(sectionId: string, file: File) {
-  const userId = await currentUserId();
-  if (!userId) throw new Error("Avval kiring");
   const safeName = file.name.replace(/[^\w.\-]+/g, "_");
-  const path = `${userId}/${sectionId}/${crypto.randomUUID()}-${safeName}`;
+  const path = `${sectionId}/${crypto.randomUUID()}-${safeName}`;
   const { error } = await supabase.storage.from("vault").upload(path, file, {
     contentType: file.type || "application/octet-stream",
   });
@@ -214,9 +100,7 @@ export async function createItem(input: {
   file_type?: string | null;
   file_size?: number | null;
 }) {
-  const userId = await currentUserId();
-  if (!userId) throw new Error("Avval kiring");
-  const { error } = await supabase.from("items").insert({ ...input, user_id: userId });
+  const { error } = await supabase.from("items").insert([input]);
   if (error) throw error;
 }
 
@@ -237,11 +121,15 @@ export async function deleteItem(item: Item) {
 }
 
 export async function signedUrl(path: string, download = false) {
-  const { data, error } = await supabase.storage
-    .from("vault")
-    .createSignedUrl(path, 60 * 60, download ? { download: true } : undefined);
-  if (error) throw error;
-  return data.signedUrl;
+  try {
+    const { data, error } = await supabase.storage
+      .from("vault")
+      .createSignedUrl(path, 60 * 60, download ? { download: true } : undefined);
+    if (!error && data?.signedUrl) return data.signedUrl;
+  } catch (_) {}
+
+  const { data } = supabase.storage.from("vault").getPublicUrl(path, download ? { download: true } : undefined);
+  return data.publicUrl;
 }
 
 export function formatSize(bytes: number | null) {
